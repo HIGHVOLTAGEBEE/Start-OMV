@@ -9,9 +9,11 @@ Start OMV provides a streamlined mobile view for OpenMediaVault servers, incorpo
 
 ---
 
-![Screenshot 1](media/1.jpeg)
-![Screenshot 2](media/2.jpeg)
-![Screenshot 3](media/3.jpeg)
+<p align="center">
+  <img src="media/1.jpeg" width="32%" alt="Screenshot 1" />
+  <img src="media/2.jpeg" width="32%" alt="Screenshot 2" />
+  <img src="media/3.jpeg" width="32%" alt="Screenshot 3" />
+</p>
 
 ---
 
