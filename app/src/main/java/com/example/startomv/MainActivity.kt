@@ -39,6 +39,9 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalAutofill
 import androidx.compose.ui.platform.LocalAutofillTree
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -583,6 +586,46 @@ fun OmvWebViewScreen(
 
     val headerColor = Color(0xFF5DACDF)
 
+    val performFullRelogin: () -> Unit = {
+        val targetUrl = OmvUtils.formatUrl(url)
+        val cookieManager = CookieManager.getInstance()
+        cookieManager.removeAllCookies {
+            cookieManager.flush()
+            webViewInstance?.let { webView ->
+                webView.clearHistory()
+                webView.evaluateJavascript(
+                    "try { window.sessionStorage.clear(); window.localStorage.clear(); } catch(e) {}",
+                    null
+                )
+                webView.loadUrl(targetUrl)
+            }
+        }
+    }
+
+    var isAppInBackground by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    isAppInBackground = true
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    if (isAppInBackground) {
+                        isAppInBackground = false
+                        performFullRelogin()
+                    }
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     // Intercept back button to navigate within WebView history if possible
     BackHandler(enabled = webViewInstance?.canGoBack() == true) {
         webViewInstance?.goBack()
@@ -627,12 +670,12 @@ fun OmvWebViewScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(
-                            onClick = { webViewInstance?.reload() },
+                            onClick = { performFullRelogin() },
                             modifier = Modifier.size(36.dp)
                         ) {
                             Icon(
                                 Icons.Default.Refresh,
-                                contentDescription = "Refresh",
+                                contentDescription = "Re-login & Refresh",
                                 tint = Color.White,
                                 modifier = Modifier.size(20.dp)
                             )

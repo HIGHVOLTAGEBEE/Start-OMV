@@ -9,6 +9,12 @@ Start OMV provides a streamlined mobile view for OpenMediaVault servers, incorpo
 
 ---
 
+![Screenshot 1](media/1.jpeg)
+![Screenshot 2](media/2.jpeg)
+![Screenshot 3](media/3.jpeg)
+
+---
+
 ## Features
 
 - **Automated Web Login**: Automatically populates login credentials when accessing OpenMediaVault Web UIs (Vue 3, Angular, ExtJS).
