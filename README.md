@@ -7,12 +7,12 @@
 **Start OMV** is a lightweight Android companion application for [OpenMediaVault](https://github.com/openmediavault/openmediavault) (OMV 5 / 6 / 7) web interfaces.
 Start OMV provides a streamlined mobile view for OpenMediaVault servers, incorporating automated credentials management, hardware-backed encryption, local Wi-Fi auto-discovery, and Android Password Manager integration.
 
----
+## Screenshots
 
 <p align="center">
-  <img src="media/1.jpeg" width="32%" alt="Screenshot 1" />
-  <img src="media/2.jpeg" width="32%" alt="Screenshot 2" />
-  <img src="media/3.jpeg" width="32%" alt="Screenshot 3" />
+  <img src="media/1.jpeg" width="30%" alt="Screenshot 1" />
+  <img src="media/2.jpeg" width="30%" alt="Screenshot 2" />
+  <img src="media/3.jpeg" width="30%" alt="Screenshot 3" />
 </p>
 
 ---

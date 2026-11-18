@@ -4,9 +4,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
+import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.webkit.CookieManager
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -98,7 +100,7 @@ object OmvPreferences {
     private const val KEY_USER = "omv_user"
     private const val KEY_PASS = "omv_pass"
 
-    private fun getPreferences(context: Context): SharedPreferences {
+    private fun getPreferences(context: Context): SharedPreferences? {
         return try {
             val masterKey = MasterKey.Builder(context)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -111,21 +113,21 @@ object OmvPreferences {
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
         } catch (_: Exception) {
-            context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            null
         }
     }
 
     fun getUrl(context: Context): String =
-        getPreferences(context).getString(KEY_URL, "") ?: ""
+        getPreferences(context)?.getString(KEY_URL, "") ?: ""
 
     fun getUser(context: Context): String =
-        getPreferences(context).getString(KEY_USER, "") ?: ""
+        getPreferences(context)?.getString(KEY_USER, "") ?: ""
 
     fun getPass(context: Context): String =
-        getPreferences(context).getString(KEY_PASS, "") ?: ""
+        getPreferences(context)?.getString(KEY_PASS, "") ?: ""
 
     fun save(context: Context, url: String, user: String, pass: String) {
-        getPreferences(context).edit {
+        getPreferences(context)?.edit {
             putString(KEY_URL, url)
             putString(KEY_USER, user)
             putString(KEY_PASS, pass)
@@ -146,7 +148,7 @@ object OmvUtils {
             trimmed = trimmed.substring(0, trimmed.length - 1)
         }
         if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-            trimmed = "http://$trimmed"
+            trimmed = "https://$trimmed"
         }
         return trimmed
     }
@@ -733,14 +735,27 @@ fun OmvWebViewScreen(
                         settings.loadWithOverviewMode = true
                         settings.builtInZoomControls = true
                         settings.displayZoomControls = false
-                        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
                         settings.userAgentString = "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
 
                         val cookieManager = CookieManager.getInstance()
                         cookieManager.setAcceptCookie(true)
-                        cookieManager.setAcceptThirdPartyCookies(this, true)
+                        cookieManager.setAcceptThirdPartyCookies(this, false)
 
                         webViewClient = object : WebViewClient() {
+                            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                                val reqUri = request?.url ?: return false
+                                val targetUri = Uri.parse(OmvUtils.formatUrl(url))
+                                if (reqUri.host != null && !reqUri.host.equals(targetUri.host, ignoreCase = true)) {
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, reqUri)
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
+                                    return true
+                                }
+                                return false
+                            }
+
                             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                                 super.onPageStarted(view, url, favicon)
                                 isLoadingPage = true
@@ -749,6 +764,12 @@ fun OmvWebViewScreen(
                             override fun onPageFinished(view: WebView?, loadedUrl: String?) {
                                 super.onPageFinished(view, loadedUrl)
                                 isLoadingPage = false
+
+                                // Domain / Host check: Only auto-login if loaded host matches configured OMV host
+                                val loadedUri = loadedUrl?.let { Uri.parse(it) } ?: return
+                                val targetUri = Uri.parse(OmvUtils.formatUrl(url))
+                                val isSameHost = loadedUri.host != null && loadedUri.host.equals(targetUri.host, ignoreCase = true)
+                                if (!isSameHost) return
 
                                 // JS Auto-Login for OMV 5/6/7 (Vue 3 / Angular / ExtJS)
                                 val escapeUser = username.replace("'", "\\'")
